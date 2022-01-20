@@ -1,20 +1,34 @@
 from django.shortcuts import render
 from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from rest_framework.parsers import JSONParser
-from budenkiln.models import TemperaturePoint, TemperatureCurve, Kiln
+from rest_framework import status
+from rest_framework.decorators import api_view
+from budenkiln.models import TemperatureCurve
 from budenkiln.serializers import TemperaturePointSerializer, TemperatureCurveSerializer, KilnSerializer
 
 # Create your views here.
 def index(request):
     return render(request, 'budenkiln/index.html')
 
-@csrf_exempt
+@api_view(['POST'])
 def setCurve(request):
-    if request.method == 'POST':
-        data = JSONParser().parse(request)
-        serializer = TemperatureCurveSerializer(data=data)
-        if serializer.is_valid():
-            serializer.save()
-            return JsonResponse(serializer.data, status=201)
-        return  JsonResponse(serializer.errors, status=400)
+    serializer = TemperatureCurveSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return JsonResponse(serializer.data, status=status.HTTP_201_CREATED)
+    return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+def setPoint(request, name):
+    print("SetPoint request for curve {}".format(name))
+    try:
+        curve = TemperatureCurve.objects.get(name=name)
+    except:
+        return JsonResponse(status=status.HTTP_404_NOT_FOUND)
+
+    request.data["curve"] = curve.id
+    print(request.data)
+    serializer = TemperaturePointSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return JsonResponse(serializer.data, status=status.HTTP_201_CREATED)
+    return  JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

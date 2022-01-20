@@ -211,25 +211,33 @@ document.addEventListener('click', function (event) {
 });
 
 function submit_chart() {
-    const form = document.getElementById("chart-form");
-    const curveName = document.getElementById("curve-name").value
+    const curveName = document.getElementById("curve-name").value;
     
-    var request_data = {
-        "name": "TODO NAME",
-        "points": [],
+    var curve_request_data = {
+        name: curveName,
     };
-    const test12341 = JSON.stringify(request_data)
-    debugger
-
-    for (let point in data.dataset[0].data) {
-        request_data.points.push({
+    debugger;
+    
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "api/curve", false);
+    xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
+    xhr.send(JSON.stringify(curve_request_data));
+    
+    var point_request_data = {
+        time: data.datasets[0].data[0].x,
+        temperature: data.datasets[0].data[0].y,
+    };
+    
+    //TODO send all points
+    /*for (let point in data.dataset[0].data) {
+        point_request_data.points.push({
             time: point.x,
             temperature: point.y
         })
-    }
+    }*/
 
     var xhr = new XMLHttpRequest();
-    xhr.open(form.method, form.action, true);
+    xhr.open("POST", "api/curve/"+curveName, false);
     xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
-    xhr.send(JSON.stringify(request_data));
+    xhr.send(JSON.stringify(point_request_data));
 }

@@ -4,14 +4,14 @@ from budenkiln.models import TemperaturePoint, TemperatureCurve, Kiln
 class KilnSerializer(serializers.ModelSerializer):
     class Meta:
         model = Kiln
-        fields = ['last_curve']
+        fields = '__all__'
 
 class TemperatureCurveSerializer(serializers.ModelSerializer):
     class Meta:
         model = TemperatureCurve
-        fields = ['name']
+        fields = '__all__'
 
 class TemperaturePointSerializer(serializers.ModelSerializer):
     class Meta:
         model = TemperaturePoint
-        fields = ['curve', 'time', 'temperature']
+        fields = '__all__'
