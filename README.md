@@ -18,3 +18,8 @@ Deactivate the venv:
 ## Django
 Start server:  
 `python3 manage.py runserver`
+
+## Remote RasPi Development (VS Code)
+1. Install `Remote - SSH` extension
+2. Install `Python/Pylance` extension on remote host  
+(open extension explorer, should show "Install in SSH: \<Host IP>")  
