@@ -14,3 +14,7 @@ Activate the venv (linux - command will vary based on OS):
 Then work like normal (i.e. pip install)  
 Deactivate the venv:  
 `deactivate`
+
+## Django
+Start server:  
+`python3 manage.py runserver`
