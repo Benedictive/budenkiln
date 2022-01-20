@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.6.2/chart.min.js"
+        integrity="sha512-tMabqarPtykgDtdtSqCL3uLVM0gS1ZkUAVhRFu1vSEFgvB73niFQWJuvviDyBGBH22Lcau4rHB5p2K2T0Xvr6Q=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+    <style>
+        h2 {
+            text-align: center;
+            text-decoration: none !important;
+        }
+
+        button {
+            transition: background .25s, border-color .25s;
+            background: rgba(40, 44, 52, .05);
+            border: 1px solid transparent;
+            border-radius: 6px;
+            color: #2f5fd0;
+            text-decoration: none !important;
+            font-size: .8rem;
+            padding: 8px 16px;
+            margin: 0 8px 8px 0;
+            cursor: pointer;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            user-select: none;
+
+        }
+
+        button:hover {
+            background: rgba(40, 44, 52, .5);
+        }
+
+        button:disabled {
+            color: rgba(40, 44, 52, .5);
+        }
+
+        input,
+        textarea {
+            background: none;
+            font-size: 18px;
+            width: 320px;
+            height: 100%;
+            border: 1px solid;
+            border-radius: 6px;
+            
+        }
+
+        input[type=submit] {
+            background-color: rgba(40, 44, 52, .05);
+            border: 1px solid transparent;
+            border-radius: 6px;
+            color: #2f5fd0;
+            font-size: .8rem;
+            padding: 8px 16px;
+            text-decoration: none;
+            margin: 0 8px 8px 0;
+            cursor: pointer;
+        }
+
+        /* It should be possible for the chart to fit inside of the viewport. */
+        .chart-canvas-container {
+            position: relative;
+            height: 65vh;
+            width: 90vw;
+        }
+
+        /* Row flexbox so that the toolbar and the chart can be centered and have the same width. */
+        .chart-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Flexbox for the toolbar and the chart. */
+        .chart {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* In case the text box should not shrink when no point is selected:
+        #selected-temp-text {
+            display: inline-block;
+            min-width: 6ch;
+            text-align: center;
+        }
+
+        #selected-time-text {
+            display: inline-block;
+            min-width: 5ch;
+            text-align: center;
+        }
+        */
+    </style>
+</head>
+
+<body>
+    <h2>
+        Temperaturkurve
+    </h2>
+
+    <div class="chart-container">
+        <div id="chart" class="chart">
+            <div style="display: flex;">
+                <button id="button-delete" class="edit-selected" onclick="onDelete()" disabled>Delete</button>
+
+                <div style="margin-left: 20px">
+                    <span>Temperatur:</span>
+                    <span id="selected-temp-text">---</span>
+                    <button class="edit-selected" onclick="moveTemp(-10)" disabled>-10</button>
+                    <button class="edit-selected" onclick="moveTemp(10)" disabled>+10</button>
+                </div>
+
+                <div style="margin-left: 20px">
+                    <span>Zeit:</span>
+                    <span id="selected-time-text">---</span>
+                    <button class="edit-selected" onclick="moveTime(-1)" disabled>-1</button>
+                    <button class="edit-selected" onclick="moveTime(1)" disabled>+1</button>
+                </div>
+
+                <div style="margin-left: auto">
+                    <form action="api/curve" method="post" style="display: flex; align-items: center;">
+                        <label for="curve-name">Name:</label>
+                        <input type="text" id="curve-name" name="curve-name">
+                        <input value="Save" type="submit" onclick="submit_chart()">
+                    </form>
+                </div>
+            </div>
+
+            <!-- Using another container for the canvas. See the responsiveness documentation for details. -->
+            <div class="chart-canvas-container">
+                <canvas id="myChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    {% load static %}
+    <script src="{% static 'budenkiln/app.js' %}"></script>
+</body>
+
+</html>

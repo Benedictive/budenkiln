@@ -8,7 +8,8 @@ See requirements.txt, or:
 
 ### Using python venv
 Create the virtual environment:  
-`python3 -m venv <path/name - i.e. .pyvenv>`  
+`python3 -m venv .pyvenv`  
+Environment names other than `.pyvenv` are possible, are not yet covered by `.gitignore` though.     
 Activate the venv (linux - command will vary based on OS):  
 `source .pyvenv/bin/activate`  
 Then work like normal (i.e. pip install)  
