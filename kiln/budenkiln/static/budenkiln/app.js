@@ -216,28 +216,24 @@ function submit_chart() {
     var curve_request_data = {
         name: curveName,
     };
-    debugger;
     
     var xhr = new XMLHttpRequest();
     xhr.open("POST", "api/curve", false);
     xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
     xhr.send(JSON.stringify(curve_request_data));
     
-    var point_request_data = {
-        time: data.datasets[0].data[0].x,
-        temperature: data.datasets[0].data[0].y,
-    };
-    
-    //TODO send all points
-    /*for (let point in data.dataset[0].data) {
-        point_request_data.points.push({
-            time: point.x,
-            temperature: point.y
+    var point_request_data = [];
+    data.datasets[0].data.forEach((point) => {
+        point_request_data.push({
+            time: parseInt(point.x),
+            temperature: parseInt(point.y),
         })
-    }*/
+    })
+    test = JSON.stringify(point_request_data);
+    debugger;
 
     var xhr = new XMLHttpRequest();
-    xhr.open("POST", "api/curve/"+curveName, false);
+    xhr.open("POST", `api/curve/${curveName}/point`, false);
     xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
     xhr.send(JSON.stringify(point_request_data));
 }

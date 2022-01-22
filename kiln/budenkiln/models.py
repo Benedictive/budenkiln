@@ -9,7 +9,7 @@ class TemperatureCurve(models.Model):
 class TemperaturePoint(models.Model):
     # With cascade the points are deleted if the curve is deleted.
     curve = models.ForeignKey(TemperatureCurve, on_delete=models.CASCADE)
-    # the x-coordinate of our point in seconds
+    # the x-coordinate of our point in minutes
     time = models.PositiveIntegerField()
     # the y-coordinate of our point in degrees celcious
     temperature = models.PositiveIntegerField() 

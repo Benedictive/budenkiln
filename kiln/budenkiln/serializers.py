@@ -14,4 +14,4 @@ class TemperatureCurveSerializer(serializers.ModelSerializer):
 class TemperaturePointSerializer(serializers.ModelSerializer):
     class Meta:
         model = TemperaturePoint
-        fields = '__all__'
+        fields = ['time', 'temperature']

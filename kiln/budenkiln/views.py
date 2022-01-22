@@ -25,10 +25,8 @@ def setPoint(request, name):
     except:
         return JsonResponse(status=status.HTTP_404_NOT_FOUND)
 
-    request.data["curve"] = curve.id
-    print(request.data)
-    serializer = TemperaturePointSerializer(data=request.data)
+    serializer = TemperaturePointSerializer(data=request.data, many=True)
     if serializer.is_valid():
-        serializer.save()
-        return JsonResponse(serializer.data, status=status.HTTP_201_CREATED)
-    return  JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.save(curve=curve)
+        return JsonResponse(serializer.data, safe=False, status=status.HTTP_201_CREATED)
+    return  JsonResponse(serializer.errors, safe=False, status=status.HTTP_400_BAD_REQUEST)
