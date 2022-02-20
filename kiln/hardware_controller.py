@@ -1,21 +1,34 @@
 from threading import Thread
-from threading import Semaphore
-import sys
+from queue import Queue
 
-val = ""
-sema = Semaphore(value=1)
+_controller = None
 
-def input_handler():
-    global val
-    while True:
-        data = sys.stdin.readline()
-        sys.stdout.write("Reply: " + str(data))
-        sys.stdout.flush()
-        sema.acquire()
-        val = 10
-        sema.release()
+class Controller(Thread):
+    def __init__(self):
+        self._queue = Queue()
+        super(Controller, self).__init__()
 
-thread = Thread(target=input_handler)
-thread.start()
-thread.join()
-exit(val)
+    def set_temp_curve(self, curve):
+        self._queue.put_nowait({"curve": curve})
+
+    def run(self):
+        while True:
+            # TODO implement 
+            item = self._queue.get()
+            print("GOT", item)
+
+def set_temp_curve(curve):
+    _controller.set_temp_curve(curve)
+
+def start():
+    global _controller
+
+    print("HARDWARE CONTROLLER")
+
+    if _controller is None:
+        _controller = Controller()
+        _controller.start()
+
+# Test
+# start()
+# set_temp_curve([1, 2, 3])

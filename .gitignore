@@ -1,5 +1,6 @@
 # ignore the python virtual environment
 kiln/.pyvenv/
+.pyvenv
 
 # Django #
 *.log
@@ -8,3 +9,6 @@ kiln/.pyvenv/
 __pycache__
 db.sqlite3
 media
+
+# Mac OS
+.DS_Store
