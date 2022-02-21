@@ -20,7 +20,17 @@ Deactivate the venv:
 Start server:  
 `python3 manage.py runserver`
 
+Setup Database:  
+`python3 .\manage.py makemigrations budenkiln` (if required)  
+`python3 .\manage.py migrate`
+
 ## Remote RasPi Development (VS Code)
 1. Install `Remote - SSH` extension
 2. Install `Python/Pylance` extension on remote host  
 (open extension explorer, should show "Install in SSH: \<Host IP>")  
+
+## TODO
+- follow curve in `hardware_controller.py`
+- handle curve submit with existing name
+- watchdog ?
+- switch relay based on actual temp vs target temp

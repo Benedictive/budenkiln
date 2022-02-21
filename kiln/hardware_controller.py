@@ -16,6 +16,7 @@ class Controller(Thread):
             # TODO implement 
             item = self._queue.get()
             print("GOT", item)
+            print(item["curve"].temperaturepoint_set.all())
 
 def set_temp_curve(curve):
     _controller.set_temp_curve(curve)
@@ -27,6 +28,7 @@ def start():
 
     if _controller is None:
         _controller = Controller()
+        _controller.daemon = True
         _controller.start()
 
 # Test
