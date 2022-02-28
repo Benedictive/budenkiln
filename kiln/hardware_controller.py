@@ -1,6 +1,7 @@
 from threading import Thread
-from queue import Queue
+from queue import Empty, Queue
 from time import sleep
+from time import time
 
 from gi.repository import GLib
 
@@ -17,14 +18,42 @@ class Controller(Thread):
 
     def set_temp_curve(self, curve):
         print("Set Curve: ", curve)
-        self._queue.put_nowait({"curve": curve})
+        self._queue.put_nowait(dict(curve))
 
     def run(self):
         curve = {}
+        start_time = time()
         while True:
             # TODO implement 
-            item = self._queue.get()
-            print("GOT", item)
+            try:
+                new_curve = self._queue.get_nowait()
+                print("GOT", new_curve)
+                curve = new_curve
+            except Empty:
+                pass
+
+            if len(curve) < 2:
+                sleep(1)
+                continue
+
+            current_second = time() - start_time
+            timestamps = sorted(curve.keys())
+
+            for timestamp in timestamps:
+                print(f"Enumerating {current_second}")
+                if current_second >= timestamp:
+                    first_point = timestamp
+                else:
+                    second_point = timestamp
+                    break
+
+            first_temp = curve[first_point]
+            second_temp = curve[second_point]
+
+            print(f"First Temp at Time {first_point} = {first_temp}")
+            print(f"Second Temp at Time {second_point} = {second_temp}")
+
+            sleep(1)
 
 def set_temp_curve(curve):
     _controller.set_temp_curve(curve)
