@@ -6,6 +6,13 @@ class TemperatureCurve(models.Model):
     def __str__(self):
         return self.name 
 
+    def get_points_as_dict(self) -> dict:
+        result = {}
+        for point in self.temperaturepoint_set.all():
+            result[point.time] = point.temperature
+
+        return result
+
 class TemperaturePoint(models.Model):
     # With cascade the points are deleted if the curve is deleted.
     curve = models.ForeignKey(TemperatureCurve, on_delete=models.CASCADE)
