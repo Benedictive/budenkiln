@@ -29,6 +29,7 @@ class Controller(Thread):
                 new_curve = self._queue.get_nowait()
                 print("GOT", new_curve)
                 curve = new_curve
+                start_time = time()
             except Empty:
                 pass
 
@@ -40,9 +41,10 @@ class Controller(Thread):
             timestamps = sorted(curve.keys())
 
             for timestamp in timestamps:
-                print(f"Enumerating {current_second}")
                 if current_second >= timestamp:
                     first_point = timestamp
+                    # ensures second_point is never undefined in case last point in list is first_point
+                    second_point = timestamp
                 else:
                     second_point = timestamp
                     break
@@ -50,8 +52,18 @@ class Controller(Thread):
             first_temp = curve[first_point]
             second_temp = curve[second_point]
 
+            points_temp_difference = second_temp - first_temp
+            points_time_difference = second_point - first_point
+            time_since_first_point = current_second - first_point
+            if (points_time_difference > 0):
+                target_temp = first_temp + (points_temp_difference * (time_since_first_point / points_time_difference) )
+            else:
+                # Curve is finished. Maintain last temperature setting
+                target_temp = second_temp
+
             print(f"First Temp at Time {first_point} = {first_temp}")
             print(f"Second Temp at Time {second_point} = {second_temp}")
+            print(f"Target Temp at Time {current_second} = {target_temp}")
 
             sleep(1)
 

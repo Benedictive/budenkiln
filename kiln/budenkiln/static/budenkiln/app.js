@@ -102,8 +102,12 @@ chart = new Chart(document.getElementById("myChart"), {
         scales: {
             x: {
                 suggestedMin: 0,
-                suggestedMax: 60,
+                suggestedMax: 3600,
                 type: 'linear',
+                title: {
+                    text: "Zeit in Sekunden",
+                    display: true,
+                },
             },
             y: {
                 suggestedMin: 0,
@@ -111,7 +115,11 @@ chart = new Chart(document.getElementById("myChart"), {
                 ticks: {
                     // Do not allow negative temperature values.     
                     beginAtZero: true,
-                }
+                },
+                title: {
+                    text: "Temperatur in C°",
+                    display: true,
+                },
             },
         },
         animation: {
