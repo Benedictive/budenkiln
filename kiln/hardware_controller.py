@@ -3,6 +3,10 @@ from queue import Empty, Queue
 from time import sleep
 from time import time
 
+import board
+from digitalio import DigitalInOut, Direction
+import adafruit_max31855
+
 from gi.repository import GLib
 
 import dbus
@@ -21,9 +25,20 @@ class Controller(Thread):
         self._queue.put_nowait(dict(curve))
 
     def run(self):
+        spi = board.SPI()
+        cs = DigitalInOut(board.CE0)
+        max31855 = adafruit_max31855.MAX31855(spi, cs)
+        relais = DigitalInOut(board.D15)
+        relais.direction = Direction.OUTPUT
+
+        relais.value = False
+
         curve = {}
         start_time = time()
         while True:
+            measured_temperature = max31855.temperature
+            print("Measured Temperature = {}".format(measured_temperature))
+
             # TODO implement 
             try:
                 new_curve = self._queue.get_nowait()
@@ -64,6 +79,12 @@ class Controller(Thread):
             print(f"First Temp at Time {first_point} = {first_temp}")
             print(f"Second Temp at Time {second_point} = {second_temp}")
             print(f"Target Temp at Time {current_second} = {target_temp}")
+            absolute_accepted_error = target_temp * 0.01
+
+            if measured_temperature < (target_temp - absolute_accepted_error):
+                relais.value = True
+            elif measured_temperature > (target_temp + absolute_accepted_error):
+                relais.value = False
 
             sleep(1)
 
