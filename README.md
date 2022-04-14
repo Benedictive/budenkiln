@@ -4,6 +4,9 @@ Web-enabled hardening and tempering kiln for the forge.
 
 ## Requirements
 DBus:  
+Gnome Desktop Environment  
+Dbus-Python uses GLib for its main loop, so it will not work headless...  
+Various packages to set up Dbus/Glib:  
 APT: `sudo apt install libgirepository1.0-dev gcc libcairo2-dev pkg-config python3-dev gir1.2-gtk-3.0`  
 Python dependencies:  
 See requirements.txt, or:  
@@ -33,7 +36,7 @@ Setup Database:
 (open extension explorer, should show "Install in SSH: \<Host IP>")  
 
 ## TODO
-- follow curve in `hardware_controller.py`
+- maybe replace Dbus with something else
 - handle curve submit with existing name
 - watchdog ?
 - switch relay based on actual temp vs target temp
