@@ -8,6 +8,10 @@ Gnome Desktop Environment
 Dbus-Python uses GLib for its main loop, so it will not work headless...  
 Various packages to set up Dbus/Glib:  
 APT: `sudo apt install libgirepository1.0-dev gcc libcairo2-dev pkg-config python3-dev gir1.2-gtk-3.0`  
+SPI:  
+On RasPi:  
+`sudo raspi-config`  
+select: interfacing options > SPI > enable  
 Python dependencies:  
 See requirements.txt, or:  
 `pip install -r requirements.txt`
