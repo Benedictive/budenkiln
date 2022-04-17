@@ -35,11 +35,9 @@ class Controller(Thread):
 
         curve = {}
         start_time = time()
-        while True:
-            measured_temperature = max31855.temperature
-            print("Measured Temperature = {}".format(measured_temperature))
 
-            # TODO implement 
+        thermocouple_error_count=0
+        while True:
             try:
                 new_curve = self._queue.get_nowait()
                 print("GOT", new_curve)
@@ -49,7 +47,23 @@ class Controller(Thread):
                 pass
 
             if len(curve) < 2:
+                print("No curve set!")
                 sleep(1)
+                continue
+
+            try:
+                measured_temperature = max31855.temperature
+                print("Measured Temperature = {}".format(measured_temperature))
+                thermocouple_error_count=0
+            except RuntimeError:
+                # For some reason casing of thermocouple is connected to one terminal so sometimes when it first touches
+                # the kiln metal casing it gets confused - error in case there is an actual connection to ground or smth
+                print("Thermocouple error")
+                thermocouple_error_count+=1
+                if (thermocouple_error_count > 15):
+                    relais.value = False
+                    raise RuntimeError("Thermocouple short to ground!")
+                sleep(0.1)
                 continue
 
             current_second = time() - start_time
@@ -76,8 +90,8 @@ class Controller(Thread):
                 # Curve is finished. Maintain last temperature setting
                 target_temp = second_temp
 
-            print(f"First Temp at Time {first_point} = {first_temp}")
-            print(f"Second Temp at Time {second_point} = {second_temp}")
+            #print(f"First Temp at Time {first_point} = {first_temp}")
+            #print(f"Second Temp at Time {second_point} = {second_temp}")
             print(f"Target Temp at Time {current_second} = {target_temp}")
             absolute_accepted_error = target_temp * 0.01
 
@@ -85,7 +99,6 @@ class Controller(Thread):
                 relais.value = True
             elif measured_temperature > (target_temp + absolute_accepted_error):
                 relais.value = False
-
             sleep(1)
 
 def set_temp_curve(curve):
