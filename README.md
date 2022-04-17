@@ -15,6 +15,10 @@ select: interfacing options > SPI > enable
 Python dependencies:  
 See requirements.txt, or:  
 `pip install -r requirements.txt`
+### WiFi Hotspot (using RaspAP)
+Install RaspAP (quick setup)
+DHCPCD:
+After RaspAP install add `noarp` to `/etc/dhcpcd.conf` (optional, only required if WiFi dies when specific devices - like OnePlus Phones - connect)  
 
 ### Using python venv
 Create the virtual environment:  
