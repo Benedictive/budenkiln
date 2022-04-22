@@ -25,7 +25,8 @@ SECRET_KEY = 'django-insecure-rklk*ltcw-+-+2&78om+mjjq-363jk=m^g5$j^w_9otc@(5k9&
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+# For testing to allow connection over network, should usually be empty (so just [])
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition

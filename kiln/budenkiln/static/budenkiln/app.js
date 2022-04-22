@@ -11,7 +11,7 @@ var selectedPoint = null;
 const data = {
     datasets: [
         {
-            label: 'My First Dataset',
+            label: 'Temperature Target Curve',
             data: [
                 { x: 0, y: 0 },
                 { x: 10, y: 1050 },
@@ -22,6 +22,16 @@ const data = {
             pointHoverRadius: POINT_RADIUS_SELECTED,
             pointBackgroundColor: POINT_COLOR_DEFAULT,
             borderColor: 'rgb(75, 192, 192)',
+            tension: 0
+        },
+        {
+            label: 'Temperature History',
+            data: [],
+            fill: false,
+            pointRadius: 1,
+            pointHoverRadius: 1,
+            pointBackgroundColor: 'rgba(150,0,0,1)',
+            borderColor: 'rgb(150, 0, 0)',
             tension: 0
         }
     ]
@@ -217,6 +227,24 @@ document.addEventListener('click', function (event) {
         chart.update();
     }
 });
+
+function display_temperature_history() {
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", `api/history`);
+    xhr.responseType = 'json';
+    xhr.send();
+    xhr.onload = function() {
+        if (xhr.status != 200) {
+            alert("Error fetching temperature history");
+        } else {
+            debugger;
+            data.datasets[1].data = xhr.response;
+            chart.update();
+        }
+    }
+}
+
+setInterval(display_temperature_history, 1000);
 
 function submit_chart() {
     const curveName = document.getElementById("curve-name").value;

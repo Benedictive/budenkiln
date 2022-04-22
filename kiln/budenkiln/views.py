@@ -36,3 +36,11 @@ def setPoint(request, name):
         iface.SetCurve(curve.get_points_as_dict())
         return JsonResponse(serializer.data, safe=False, status=status.HTTP_201_CREATED)
     return  JsonResponse(serializer.errors, safe=False, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+def getTemperatureHistory(request):
+    bus = dbus.SessionBus()
+    remote_object = bus.get_object("de.budenkiln.ControllerService", "/KilnService")
+    iface = dbus.Interface(remote_object, "de.budenkiln.ControllerInterface")
+    temperature_history = dict(iface.GetTempHistory())
+    return JsonResponse(temperature_history)

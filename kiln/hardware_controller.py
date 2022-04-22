@@ -18,11 +18,15 @@ _controller = None
 class Controller(Thread):
     def __init__(self):
         self._queue = Queue()
+        self._temperature_history = dict()
         super(Controller, self).__init__()
 
     def set_temp_curve(self, curve):
         print("Set Curve: ", curve)
         self._queue.put_nowait(dict(curve))
+
+    def get_temp_history(self):
+        return self._temperature_history
 
     def run(self):
         spi = board.SPI()
@@ -43,6 +47,7 @@ class Controller(Thread):
                 print("GOT", new_curve)
                 curve = new_curve
                 start_time = time()
+                self._temperature_history = dict()
             except Empty:
                 pass
 
@@ -67,6 +72,9 @@ class Controller(Thread):
                 continue
 
             current_second = time() - start_time
+            # Log temperature
+            self._temperature_history[current_second] = measured_temperature
+
             timestamps = sorted(curve.keys())
 
             for timestamp in timestamps:
@@ -120,6 +128,11 @@ class KilnService(dbus.service.Object):
                          in_signature='a{ii}', out_signature='')
     def SetCurve(self, curve):
         _controller.set_temp_curve(curve=curve)
+
+    @dbus.service.method("de.budenkiln.ControllerInterface",
+                         in_signature='', out_signature='a{ii}')
+    def GetTempHistory(self):
+        return _controller.get_temp_history()
 
     def start(self):
         dbus_loop = GLib.MainLoop()
