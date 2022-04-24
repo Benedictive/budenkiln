@@ -1,27 +1,23 @@
 #!/bin/bash
-# This script will stop Hotspot (AP+DHCP) and will Switch your Raspberry to a WIFI Client 
-# Run : bash SetAP2Client.sh
+# This script will start Hotspot (AP+DHCP) and will Switch your Raspberry to a WIFI AP 
+# Run : bash SetClient2AP.sh
 # Source: RPi-Forums: https://forums.raspberrypi.com/viewtopic.php?t=307221
 # Required setup:
 # Have client-configs for dnsmasq and dhcpcd saved as *.conf.orig
 # Have AP-Configs for dnsmasq and dhcpcd saved as *.conf.ap
-# The latter is not required for deactivating, but would disable revertability
+# The former is not required for activating, but would disable revertability
 # Maybe rework for use of properly named temp files ?
 # Result: Worked manually so far
 
 echo "========================================"
-echo " Switch from Hotspot (AP+DHP) to Client "
+echo " Switch from Client to Hotspot (AP+DHP) "
 echo "========================================"
 echo " "
 echo "Reconfiguring dnsmasq"
-sudo cp /etc/dnsmasq.conf.orig /etc/dnsmasq.conf
+sudo cp /etc/dnsmasq.conf.ap /etc/dnsmasq.conf
 
 echo "Reconfiguring dhcpcd"
-sudo cp /etc/dhcpcd.conf.orig /etc/dhcpcd.conf
-
-echo "Stopping hostapd, dnsmasq "
-sudo service dnsmasq stop
-sudo service hostapd stop
+sudo cp /etc/dhcpcd.conf.ap /etc/dhcpcd.conf
 
 echo "Reloading Daemon"
 sudo systemctl daemon-reload
@@ -29,5 +25,9 @@ sudo systemctl daemon-reload
 echo "Restaring dhcpcd"
 sudo systemctl restart dhcpcd
 
-echo "Done. System should connect to known WiFi in range."
+echo "Starting hostapd, dnsmasq "
+sudo service dnsmasq start
+sudo service hostapd start
+
+echo "Done. System should create WiFi AP."
 exit
