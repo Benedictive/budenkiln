@@ -15,12 +15,19 @@ select: interfacing options > SPI > enable
 Python dependencies:  
 See requirements.txt, or:  
 `pip install -r requirements.txt`
-### WiFi Hotspot (using RaspAP)
-Install RaspAP (quick setup)
-DHCPCD:
-After RaspAP install add `noarp` to `/etc/dhcpcd.conf` (optional, only required if WiFi dies when specific devices - like OnePlus Phones - connect)  
+## WiFi Hotspot
+Useful for usage of Kiln without connection to existing Network:  
+Follow official RaspberryPi documentation on hosting an AP, except simply use the provided config files:  
+Move files from WiFiConfig-folder as required:  
+- `dnsmasq.conf.*` and `dhcpcd.conf.*` into `/etc/`
+- `hostapd.conf` into `/etc/hostapd/`
 
-### Using python venv
+DHCPCD - Ignore if using the provided files:  
+Add `noarp` to `/etc/dhcpcd.conf` (optional, only required if WiFi dies when specific devices - like OnePlus Phones - connect)  
+### AP Switching
+See Scripts in WiFiConfig-Folder
+
+## Using python venv
 Create the virtual environment:  
 `python3 -m venv .pyvenv`  
 Environment names other than `.pyvenv` are possible, are not yet covered by `.gitignore` though.     
@@ -47,4 +54,3 @@ Setup Database:
 - maybe replace Dbus with something else
 - handle curve submit with existing name
 - watchdog ?
-- switch relay based on actual temp vs target temp
