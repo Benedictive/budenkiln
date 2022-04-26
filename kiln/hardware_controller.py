@@ -11,39 +11,44 @@ from gi.repository import GLib
 
 import dbus
 import dbus.service
-import dbus.mainloop.glib
+from dbus.mainloop.glib import DBusGMainLoop
 
-_controller = None
+_kiln_service = None
 
 class Controller(Thread):
     def __init__(self):
-        self._queue = Queue()
+        self._input_queue = Queue()
         self._temperature_history = dict()
         super(Controller, self).__init__()
 
     def set_temp_curve(self, curve):
         print("Set Curve: ", curve)
-        self._queue.put_nowait(dict(curve))
+        self._input_queue.put_nowait(dict(curve))
 
     def get_temp_history(self):
         return self._temperature_history
 
     def run(self):
+        # Setup Hardware IO
         spi = board.SPI()
         cs = DigitalInOut(board.CE0)
         max31855 = adafruit_max31855.MAX31855(spi, cs)
         relais = DigitalInOut(board.D15)
         relais.direction = Direction.OUTPUT
 
+        # Start with relais off
         relais.value = False
 
         curve = {}
         start_time = time()
 
+        # remove once proper thermocouple arrives
         thermocouple_error_count=0
+
         while True:
+            # Check for new input curve
             try:
-                new_curve = self._queue.get_nowait()
+                new_curve = self._input_queue.get_nowait()
                 print("GOT", new_curve)
                 curve = new_curve
                 start_time = time()
@@ -56,13 +61,16 @@ class Controller(Thread):
                 sleep(1)
                 continue
 
+            # Fetch temperature from probe
             try:
                 measured_temperature = max31855.temperature
                 print("Measured Temperature = {}".format(measured_temperature))
+                # remove once new thermocouple arrives
                 thermocouple_error_count=0
             except RuntimeError:
                 # For some reason casing of thermocouple is connected to one terminal so sometimes when it first touches
                 # the kiln metal casing it gets confused - error in case there is an actual connection to ground or smth
+                # remove once new thermocouple arrives
                 print("Thermocouple error")
                 thermocouple_error_count+=1
                 if (thermocouple_error_count > 15):
@@ -75,8 +83,8 @@ class Controller(Thread):
             # Log temperature
             self._temperature_history[current_second] = measured_temperature
 
+            # Find start and end of current interval
             timestamps = sorted(curve.keys())
-
             for timestamp in timestamps:
                 if current_second >= timestamp:
                     first_point = timestamp
@@ -86,12 +94,15 @@ class Controller(Thread):
                     second_point = timestamp
                     break
 
+            # Find previous and next target temperature
             first_temp = curve[first_point]
             second_temp = curve[second_point]
 
+            # Interpolate target temperature based on start and end temperature with current time
             points_temp_difference = second_temp - first_temp
             points_time_difference = second_point - first_point
             time_since_first_point = current_second - first_point
+
             if (points_time_difference > 0):
                 target_temp = first_temp + (points_temp_difference * (time_since_first_point / points_time_difference) )
             else:
@@ -107,50 +118,46 @@ class Controller(Thread):
                 relais.value = True
             elif measured_temperature > (target_temp + absolute_accepted_error):
                 relais.value = False
+
             sleep(1)
 
-def set_temp_curve(curve):
-    _controller.set_temp_curve(curve)
-
-def start():
-    global _controller
-
-    print("HARDWARE CONTROLLER")
-
-    if _controller is None:
-        _controller = Controller()
-        _controller.daemon = True
-        _controller.start()
-
 class KilnService(dbus.service.Object):
+    def __init__(self, conn, object_path):
+        self._controller = Controller()
+        self._controller.daemon = True
+
+        dbus.service.Object.__init__(self, conn, object_path)
+
     
     @dbus.service.method("de.budenkiln.ControllerInterface",
                          in_signature='a{ii}', out_signature='')
     def SetCurve(self, curve):
-        _controller.set_temp_curve(curve=curve)
+        self._controller.set_temp_curve(curve=curve)
 
     @dbus.service.method("de.budenkiln.ControllerInterface",
                          in_signature='', out_signature='a{ii}')
     def GetTempHistory(self):
-        return _controller.get_temp_history()
+        return self._controller.get_temp_history()
 
     def start(self):
+        print("Start Controller Thread")
+        self._controller.start()
+
+        print("Start DBus Interface")
         dbus_loop = GLib.MainLoop()
         dbus_loop.run()
         
+def start():
+    global _kiln_service
+
+    print("HARDWARE CONTROLLER")
+
+    if _kiln_service is None:
+        DBusGMainLoop(set_as_default=True)
+        session_bus = dbus.SessionBus()
+        name = dbus.service.BusName("de.budenkiln.ControllerService", session_bus)
+
+        _kiln_service = KilnService(session_bus , '/KilnService')
+        _kiln_service.start()
 
 start()
-
-dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
-session_bus = dbus.SessionBus()
-name = dbus.service.BusName("de.budenkiln.ControllerService", session_bus)
-service_object = KilnService(session_bus, '/KilnService')
-
-dbus_loop = GLib.MainLoop()
-print("Start Controller Thread")
-dbus_thread = Thread(target=dbus_loop.run())
-dbus_thread.daemon = True
-dbus_thread.start()
-
-while (True):
-    sleep(0.1)
