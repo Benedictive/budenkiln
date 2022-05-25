@@ -52,5 +52,4 @@ Setup Database:
 
 ## TODO
 - maybe replace Dbus with something else
-- handle curve submit with existing name
 - watchdog ?
