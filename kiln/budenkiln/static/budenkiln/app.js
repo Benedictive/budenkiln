@@ -12,11 +12,7 @@ const data = {
     datasets: [
         {
             label: 'Temperature Target Curve',
-            data: [
-                { x: 0, y: 0 },
-                { x: 10, y: 1050 },
-                { x: 30, y: 0 }
-            ],
+            data: [],
             fill: false,
             pointRadius: POINT_RADIUS_DEFAULT,
             pointHoverRadius: POINT_RADIUS_SELECTED,
@@ -237,7 +233,6 @@ function display_temperature_history() {
         if (xhr.status != 200) {
             alert("Error fetching temperature history");
         } else {
-            debugger;
             data.datasets[1].data = xhr.response;
             chart.update();
         }
@@ -266,7 +261,6 @@ function submit_chart() {
         })
     })
     test = JSON.stringify(point_request_data);
-    debugger;
 
     var xhr = new XMLHttpRequest();
     xhr.open("POST", `api/curve/${curveName}/point`, false);

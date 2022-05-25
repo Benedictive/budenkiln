@@ -85,10 +85,11 @@ class Controller(Thread):
 
             # Find start and end of current interval
             timestamps = sorted(curve.keys())
+            first_point = second_point = list(timestamps)[0]
             for timestamp in timestamps:
                 if current_second >= timestamp:
                     first_point = timestamp
-                    # ensures second_point is never undefined in case last point in list is first_point
+                    # ensures second_point is never before first in case last point in list is first_point
                     second_point = timestamp
                 else:
                     second_point = timestamp
