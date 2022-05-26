@@ -1,3 +1,4 @@
+import os
 from threading import Thread
 from queue import Empty, Queue
 from time import sleep
@@ -19,6 +20,7 @@ class Controller(Thread):
     def __init__(self):
         self._input_queue = Queue()
         self._temperature_history = dict()
+        self._shutdown = False
         super(Controller, self).__init__()
         # Setup Hardware IO
         spi = board.SPI()
@@ -39,6 +41,9 @@ class Controller(Thread):
     def relais_off(self):
         self.relais.value = False
 
+    def shutdown(self):
+        self._shutdown = True
+
     def run(self):
         # Start with relais off
         self.relais.value = False
@@ -51,6 +56,10 @@ class Controller(Thread):
 
         try:
             while True:
+                if self._shutdown:
+                    self.relais_off()
+                    break
+
                 # Check for new input curve
                 try:
                     new_curve = self._input_queue.get_nowait()
@@ -135,7 +144,10 @@ class KilnService(dbus.service.Object):
         self._controller = Controller()
         self._controller.daemon = True
 
+        self._shutdown = False
+
         dbus.service.Object.__init__(self, conn, object_path)
+        self._dbus_loop = GLib.MainLoop()
 
     
     @dbus.service.method("de.budenkiln.ControllerInterface",
@@ -148,18 +160,40 @@ class KilnService(dbus.service.Object):
     def GetTempHistory(self):
         return self._controller.get_temp_history()
 
+    @dbus.service.method("de.budenkiln.ControllerInterface",
+                         in_signature='', out_signature='')
+    def ShutdownKiln(self):
+        self._shutdown = True
+        self._controller.shutdown()
+        # DBus loop has to be killed in separate thread so caller can receive answer
+        dbusKillthread = Thread(target=self.stopDBus)
+        dbusKillthread.start()
+        
+
+    def stopDBus(self):
+        sleep(1)
+        self._dbus_loop.quit()
+
+
     def start(self):
         print("Start Controller Thread")
         self._controller.start()
 
         print("Start DBus Interface")
-        dbus_loop = GLib.MainLoop()
         try:
-            dbus_loop.run()
+            self._dbus_loop.run()
         except:
             print("Controller terminating - shutting down heater power!")
             self._controller.relais_off()
             raise
+
+        self._controller.join()
+        if self._shutdown:
+            print("Shutting down!")
+            # TODO does not work without sudo while in user session, should work once in autostart
+            os.system("systemctl poweroff")
+
+
         
 def start():
     global _kiln_service

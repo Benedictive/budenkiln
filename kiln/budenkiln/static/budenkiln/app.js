@@ -1,3 +1,5 @@
+const TEMPERATURE_PROFILE_DATASET_LABEL = "Temperature Target Curve"
+
 const POINT_COLOR_DEFAULT = "rgba(0,50,200,1)";
 const POINT_COLOR_SELECTED = "rgba(200,15,15,1)";
 
@@ -11,7 +13,7 @@ var selectedPoint = null;
 const data = {
     datasets: [
         {
-            label: 'Temperature Target Curve',
+            label: TEMPERATURE_PROFILE_DATASET_LABEL,
             data: [],
             fill: false,
             pointRadius: POINT_RADIUS_DEFAULT,
@@ -25,6 +27,7 @@ const data = {
             data: [],
             fill: false,
             pointRadius: 1,
+            pointHitRadius: 0,
             pointHoverRadius: 1,
             pointBackgroundColor: 'rgba(150,0,0,1)',
             borderColor: 'rgb(150, 0, 0)',
@@ -168,6 +171,10 @@ chart = new Chart(document.getElementById("myChart"), {
                 chart.update();
             } else {
                 var item = items[0];
+                itemDatasetLabel = data.datasets[item.datasetIndex].label
+                if (itemDatasetLabel !== TEMPERATURE_PROFILE_DATASET_LABEL) {
+                    return;
+                }
 
                 if (selectedPoint != null &&
                     selectedPoint.dataset == item.datasetIndex &&

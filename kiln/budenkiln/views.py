@@ -1,6 +1,6 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.template import Context
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from rest_framework import status
 from rest_framework.decorators import api_view
 from budenkiln.models import TemperatureCurve, TemperaturePoint
@@ -25,10 +25,7 @@ def setCurve(request):
 @api_view(['POST'])
 def setPoint(request, name):
     print("SetPoint request for curve {}".format(name))
-    try:
-        curve = TemperatureCurve.objects.get(name=name)
-    except:
-        return JsonResponse(status=status.HTTP_404_NOT_FOUND)
+    curve = get_object_or_404(TemperatureCurve, name=name)
 
     serializer = TemperaturePointSerializer(data=request.data, many=True)
     if serializer.is_valid():
@@ -38,19 +35,24 @@ def setPoint(request, name):
 
         serializer.save(curve=curve)
 
-        bus = dbus.SessionBus()
-        remote_object = bus.get_object("de.budenkiln.ControllerService", "/KilnService")
-        iface = dbus.Interface(remote_object, "de.budenkiln.ControllerInterface")
-        iface.SetCurve(curve.get_points_as_dict())
+        getBudenkilnDBusInterface().SetCurve(curve.get_points_as_dict())
 
         return JsonResponse(serializer.data, safe=False, status=status.HTTP_201_CREATED)
     return  JsonResponse(serializer.errors, safe=False, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
 def getTemperatureHistory(request):
+    temperature_history = dict(getBudenkilnDBusInterface().GetTempHistory())
+
+    return JsonResponse(temperature_history)
+
+def getBudenkilnDBusInterface():
     bus = dbus.SessionBus()
     remote_object = bus.get_object("de.budenkiln.ControllerService", "/KilnService")
     iface = dbus.Interface(remote_object, "de.budenkiln.ControllerInterface")
-    temperature_history = dict(iface.GetTempHistory())
+    return iface
 
-    return JsonResponse(temperature_history)
+@api_view(['POST'])
+def shutdownBudenkiln(request):
+    getBudenkilnDBusInterface().ShutdownKiln()
+    return HttpResponse(status=status.HTTP_200_OK)
