@@ -21,6 +21,8 @@ class Controller(Thread):
         self._input_queue = Queue()
         self._temperature_history = dict()
         self._shutdown = False
+        self._loop_duration_s = 1
+        self._max_error_duration_s = 15
         super(Controller, self).__init__()
         # Setup Hardware IO
         spi = board.SPI()
@@ -37,6 +39,17 @@ class Controller(Thread):
 
     def get_temp_history(self):
         return self._temperature_history
+
+    """ TODO Change temp_hist to list of touples instead of dict
+    def get_temp_recent_change(self):
+        averaging_range = 5
+        hist_count = len(self._temperature_history)
+        if hist_count == 0:
+            return 0
+        else:
+            limit = max(hist_count, averaging_range)
+            for n in range(0, limit-1):
+    """
 
     def relais_off(self):
         self.relais.value = False
@@ -60,6 +73,8 @@ class Controller(Thread):
                     self.relais_off()
                     break
 
+                sleep(self._loop_duration_s)
+
                 # Check for new input curve
                 try:
                     new_curve = self._input_queue.get_nowait()
@@ -72,7 +87,6 @@ class Controller(Thread):
 
                 if len(curve) < 2:
                     print("No curve set!")
-                    sleep(1)
                     continue
 
                 # Fetch temperature from probe
@@ -85,10 +99,9 @@ class Controller(Thread):
                     # Assume actual error if error persists for long duration
                     print("Thermocouple error")
                     thermocouple_error_count+=1
-                    if (thermocouple_error_count > 5):
+                    if (thermocouple_error_count > (self._max_error_duration_s / self._loop_duration_s)):
                         self.relais.value = False
                         raise RuntimeError("Thermocouple short to ground!")
-                    sleep(1)
                     continue
 
                 current_second = time() - start_time
@@ -132,7 +145,6 @@ class Controller(Thread):
                 elif measured_temperature > (target_temp + absolute_accepted_error):
                     self.relais.value = False
 
-                sleep(1)
         except:
             # Ensure deactivation of relais on error
             print("control loop terminating - shutting down heater power!")
@@ -202,6 +214,7 @@ def start():
 
     if _kiln_service is None:
         DBusGMainLoop(set_as_default=True)
+        # TODO Change to SystemBus
         session_bus = dbus.SessionBus()
         name = dbus.service.BusName("de.budenkiln.ControllerService", session_bus)
 

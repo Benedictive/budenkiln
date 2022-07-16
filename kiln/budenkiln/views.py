@@ -42,17 +42,20 @@ def setPoint(request, name):
 
 @api_view(['GET'])
 def getTemperatureHistory(request):
+    print("Getting History")
     temperature_history = dict(getBudenkilnDBusInterface().GetTempHistory())
 
     return JsonResponse(temperature_history)
 
 def getBudenkilnDBusInterface():
+    print("Loading SysBus")
     bus = dbus.SessionBus()
+    print("Fetching Object")
     remote_object = bus.get_object("de.budenkiln.ControllerService", "/KilnService")
     iface = dbus.Interface(remote_object, "de.budenkiln.ControllerInterface")
     return iface
 
 @api_view(['POST'])
 def shutdownBudenkiln(request):
-    getBudenkilnDBusInterface().ShutdownKiln()
+    #getBudenkilnDBusInterface().ShutdownKiln()
     return HttpResponse(status=status.HTTP_200_OK)
