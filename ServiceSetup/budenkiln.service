@@ -1,0 +1,13 @@
+[Unit]
+Description=Starts Budenkiln on startup
+After=dbus.socket
+
+[Service]
+Type=simple
+User=budenkiln
+Restart=always
+WorkingDirectory=/home/budenkiln/Code/budenkiln
+ExecStart=/home/budenkiln/Code/budenkiln/start.sh
+
+[Install]
+WantedBy=graphical.target
