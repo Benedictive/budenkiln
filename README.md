@@ -51,5 +51,5 @@ Setup Database:
 (open extension explorer, should show "Install in SSH: \<Host IP>")  
 
 ## TODO
-- maybe replace Dbus with something else
+- Replace DBus with FIFO/Named Pipe, see PoC
 - watchdog ?
