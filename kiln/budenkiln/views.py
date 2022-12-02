@@ -5,8 +5,8 @@ from rest_framework import status
 from rest_framework.decorators import api_view
 from budenkiln.models import TemperatureCurve, TemperaturePoint
 from budenkiln.serializers import TemperaturePointSerializer, TemperatureCurveSerializer
-import dbus
 
+import zmq
 
 # Create your views here.
 def index(request):
@@ -35,7 +35,19 @@ def setPoint(request, name):
 
         serializer.save(curve=curve)
 
-        getBudenkilnDBusInterface().SetCurve(curve.get_points_as_dict())
+        context = zmq.Context()
+
+        print("Conn")
+        socket = context.socket(zmq.REQ)
+        socket.connect("tcp://localhost:5555")
+
+        for req in range(10):
+            print("Sending {}".format(req))
+            socket.send(b"Hello")
+
+            message = socket.recv()
+            print("Rec {} : {}".format(req, message))
+        #getBudenkilnDBusInterface().SetCurve(curve.get_points_as_dict())
 
         return JsonResponse(serializer.data, safe=False, status=status.HTTP_201_CREATED)
     return  JsonResponse(serializer.errors, safe=False, status=status.HTTP_400_BAD_REQUEST)
@@ -43,17 +55,9 @@ def setPoint(request, name):
 @api_view(['GET'])
 def getTemperatureHistory(request):
     print("Getting History")
-    temperature_history = dict(getBudenkilnDBusInterface().GetTempHistory())
+    temperature_history = {0:1}
 
     return JsonResponse(temperature_history)
-
-def getBudenkilnDBusInterface():
-    print("Loading SysBus")
-    bus = dbus.SessionBus()
-    print("Fetching Object")
-    remote_object = bus.get_object("de.budenkiln.ControllerService", "/KilnService")
-    iface = dbus.Interface(remote_object, "de.budenkiln.ControllerInterface")
-    return iface
 
 @api_view(['POST'])
 def shutdownBudenkiln(request):
