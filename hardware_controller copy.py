@@ -3,6 +3,7 @@ from queue import Empty, Queue
 from time import sleep
 from time import time
 import zmq
+import pickle
 import signal
 
 _kiln_service = None
@@ -19,6 +20,7 @@ class Controller(Thread):
     def set_temp_curve(self, curve):
         print("Set Curve: ", curve)
         self._input_queue.put_nowait(dict(curve))
+        return True
 
     def get_temp_history(self):
         return self._temperature_history
@@ -142,17 +144,34 @@ class KilnService():
             # replace IP with ipc://<path> on linux
             socket.bind("tcp://*:5555")
             while True:
-                print("Huh")
                 message = socket.recv()
-                print("Rec req: {}".format(message))
+                request, content = self.parse_request(message)
+                reply = self.instantiate_rpc(request, content)
 
-                socket.send(b"World")
+                serialized_reply = pickle.dumps(reply)
+                socket.send(serialized_reply)
         except:
             print("Controller terminating - shutting down heater power!")
             raise
 
         self._controller.join()
 
+    def parse_request(self, message):
+        return pickle.loads(message)
+
+    def instantiate_rpc(self, request, content):
+        # technically allows (limited) remote code execution, maybe seal behind interface ?
+        methodCall = getattr(self, request, self.unknown_member)
+        return methodCall(content)
+    
+    def set_curve(self, curve):
+        self._controller.set_temp_curve(curve=curve)
+
+    def get_temp_history(self, content):
+        return self._controller.get_temp_history()
+
+    def unknown_member(self, content):
+        return False
         
 def start():
     global _kiln_service

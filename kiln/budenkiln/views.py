@@ -7,6 +7,7 @@ from budenkiln.models import TemperatureCurve, TemperaturePoint
 from budenkiln.serializers import TemperaturePointSerializer, TemperatureCurveSerializer
 
 import zmq
+import pickle
 
 # Create your views here.
 def index(request):
@@ -34,20 +35,9 @@ def setPoint(request, name):
         old_points.delete()
 
         serializer.save(curve=curve)
+        curve_points = curve.get_points_as_dict()
 
-        context = zmq.Context()
-
-        print("Conn")
-        socket = context.socket(zmq.REQ)
-        socket.connect("tcp://localhost:5555")
-
-        for req in range(10):
-            print("Sending {}".format(req))
-            socket.send(b"Hello")
-
-            message = socket.recv()
-            print("Rec {} : {}".format(req, message))
-        #getBudenkilnDBusInterface().SetCurve(curve.get_points_as_dict())
+        rpc_reply = controller_rpc("SetCurve", curve_points)
 
         return JsonResponse(serializer.data, safe=False, status=status.HTTP_201_CREATED)
     return  JsonResponse(serializer.errors, safe=False, status=status.HTTP_400_BAD_REQUEST)
@@ -55,11 +45,27 @@ def setPoint(request, name):
 @api_view(['GET'])
 def getTemperatureHistory(request):
     print("Getting History")
-    temperature_history = {0:1}
+    temperature_history = controller_rpc("GetTempHistory", None)
 
     return JsonResponse(temperature_history)
 
 @api_view(['POST'])
 def shutdownBudenkiln(request):
-    #getBudenkilnDBusInterface().ShutdownKiln()
+    # TODO
     return HttpResponse(status=status.HTTP_200_OK)
+
+def controller_rpc(method, content):
+    context = zmq.Context()
+    socket = context.socket(zmq.REQ)
+    socket.connect("tcp://localhost:5555")
+
+    message = create_rpc_message(method, content)
+    serialized_message = pickle.dumps(message)
+
+    socket.send(serialized_message)
+
+    serialized_reply = socket.recv()
+    return pickle.loads(serialized_reply)
+
+def create_rpc_message(remote_procedure, content):
+    return (remote_procedure, content)
