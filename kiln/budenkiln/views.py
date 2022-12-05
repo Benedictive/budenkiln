@@ -37,15 +37,14 @@ def setPoint(request, name):
         serializer.save(curve=curve)
         curve_points = curve.get_points_as_dict()
 
-        rpc_reply = controller_rpc("SetCurve", curve_points)
+        rpc_reply = controller_rpc("set_curve", curve_points)
 
         return JsonResponse(serializer.data, safe=False, status=status.HTTP_201_CREATED)
     return  JsonResponse(serializer.errors, safe=False, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
 def getTemperatureHistory(request):
-    print("Getting History")
-    temperature_history = controller_rpc("GetTempHistory", None)
+    temperature_history = controller_rpc("get_temp_history", None)
 
     return JsonResponse(temperature_history)
 

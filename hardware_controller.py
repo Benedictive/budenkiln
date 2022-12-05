@@ -4,15 +4,13 @@ from queue import Empty, Queue
 from time import sleep
 from time import time
 
+import zmq
+import pickle
+import signal
+
 import board
 from digitalio import DigitalInOut, Direction
 import adafruit_max31855
-
-from gi.repository import GLib
-
-import dbus
-import dbus.service
-from dbus.mainloop.glib import DBusGMainLoop
 
 _kiln_service = None
 
@@ -22,7 +20,7 @@ class Controller(Thread):
         self._temperature_history = dict()
         self._shutdown = False
         self._loop_duration_s = 1
-        self._max_error_duration_s = 15
+        self._max_error_duration_s = 60
         super(Controller, self).__init__()
         # Setup Hardware IO
         spi = board.SPI()
@@ -36,6 +34,7 @@ class Controller(Thread):
     def set_temp_curve(self, curve):
         print("Set Curve: ", curve)
         self._input_queue.put_nowait(dict(curve))
+        return True
 
     def get_temp_history(self):
         return self._temperature_history
@@ -151,53 +150,35 @@ class Controller(Thread):
             self.relais_off()
             raise
 
-class KilnService(dbus.service.Object):
-    def __init__(self, conn, object_path):
+class KilnService():
+    def __init__(self):
         self._controller = Controller()
         self._controller.daemon = True
 
         self._shutdown = False
 
-        dbus.service.Object.__init__(self, conn, object_path)
-        self._dbus_loop = GLib.MainLoop()
-
-    
-    @dbus.service.method("de.budenkiln.ControllerInterface",
-                         in_signature='a{ii}', out_signature='')
-    def SetCurve(self, curve):
-        self._controller.set_temp_curve(curve=curve)
-
-    @dbus.service.method("de.budenkiln.ControllerInterface",
-                         in_signature='', out_signature='a{ii}')
-    def GetTempHistory(self):
-        return self._controller.get_temp_history()
-
-    @dbus.service.method("de.budenkiln.ControllerInterface",
-                         in_signature='', out_signature='')
-    def ShutdownKiln(self):
-        self._shutdown = True
-        self._controller.shutdown()
-        # DBus loop has to be killed in separate thread so caller can receive answer
-        dbusKillthread = Thread(target=self.stopDBus)
-        dbusKillthread.start()
-        
-
-    def stopDBus(self):
-        sleep(1)
-        self._dbus_loop.quit()
-
-
     def start(self):
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
         print("Start Controller Thread")
         self._controller.start()
 
-        print("Start DBus Interface")
+        print("Start Controller Server")
+        context = zmq.Context()
+        socket = context.socket(zmq.REP)
         try:
-            self._dbus_loop.run()
+            # setup server
+            # replace IP with ipc://<path> on linux
+            socket.bind("tcp://*:5555")
+            while True:
+                message = socket.recv()
+                request, content = self.parse_request(message)
+                reply = self.instantiate_rpc(request, content)
+
+                serialized_reply = pickle.dumps(reply)
+                socket.send(serialized_reply)
         except:
             print("Controller terminating - shutting down heater power!")
             self._controller.relais_off()
-            raise
 
         self._controller.join()
         if self._shutdown:
@@ -205,7 +186,26 @@ class KilnService(dbus.service.Object):
             # TODO does not work without sudo while in user session, should work once in autostart
             os.system("systemctl poweroff")
 
+    def parse_request(self, message):
+        return pickle.loads(message)
 
+    def instantiate_rpc(self, request, content):
+        # technically allows (limited) remote code execution, maybe seal behind interface ?
+        methodCall = getattr(self, request, self.unknown_member)
+        return methodCall(content)
+    
+    def set_curve(self, curve):
+        self._controller.set_temp_curve(curve=curve)
+
+    def get_temp_history(self, content):
+        return self._controller.get_temp_history()
+
+    def unknown_member(self, content):
+        return False
+
+    def shutdown_kiln(self):
+        self._shutdown = True
+        self._controller.shutdown()
         
 def start():
     global _kiln_service
@@ -213,12 +213,7 @@ def start():
     print("HARDWARE CONTROLLER")
 
     if _kiln_service is None:
-        DBusGMainLoop(set_as_default=True)
-        # TODO Change to SystemBus
-        session_bus = dbus.SessionBus()
-        name = dbus.service.BusName("de.budenkiln.ControllerService", session_bus)
-
-        _kiln_service = KilnService(session_bus , '/KilnService')
+        _kiln_service = KilnService()
         _kiln_service.start()
 
 start()
