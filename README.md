@@ -3,11 +3,6 @@
 Web-enabled hardening and tempering kiln for the forge.
 
 ## Requirements
-DBus:  
-Gnome Desktop Environment  
-Dbus-Python uses GLib for its main loop, so it will not work headless...  
-Various packages to set up Dbus/Glib:  
-APT: `sudo apt install libgirepository1.0-dev gcc libcairo2-dev pkg-config python3-dev gir1.2-gtk-3.0`  
 SPI:  
 On RasPi:  
 `sudo raspi-config`  
@@ -30,7 +25,7 @@ See Scripts in WiFiConfig-Folder
 ## Using python venv
 Create the virtual environment:  
 `python3 -m venv .pyvenv`  
-Environment names other than `.pyvenv` are possible, are not yet covered by `.gitignore` though.     
+Environment names other than `.pyvenv` are possible, but are not yet covered by `.gitignore`.  
 Activate the venv (linux - command will vary based on OS):  
 `source .pyvenv/bin/activate`  
 Then work like normal (i.e. pip install)  
@@ -51,5 +46,5 @@ Setup Database:
 (open extension explorer, should show "Install in SSH: \<Host IP>")  
 
 ## TODO
-- Replace DBus with FIFO/Named Pipe, see PoC
+- proper autostart
 - watchdog ?
