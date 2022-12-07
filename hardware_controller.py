@@ -54,6 +54,7 @@ class Controller(Thread):
         self.relais.value = False
 
     def shutdown(self):
+        print("Shutdown Controller")
         self._shutdown = True
 
     def run(self):
@@ -69,6 +70,7 @@ class Controller(Thread):
         try:
             while True:
                 if self._shutdown:
+                    print("Stopping control loop!")
                     self.relais_off()
                     break
 
@@ -150,6 +152,9 @@ class Controller(Thread):
             self.relais_off()
             raise
 
+        # just for sanity if somehow the loop ends without shutting down the relais
+        self.relais_off()
+
 class KilnService():
     def __init__(self):
         self._controller = Controller()
@@ -162,22 +167,22 @@ class KilnService():
         print("Start Controller Thread")
         self._controller.start()
 
-        print("Start Controller Server")
+        print("Start RPC Server")
         context = zmq.Context()
         socket = context.socket(zmq.REP)
         try:
             # setup server
             # replace IP with ipc://<path> on linux
             socket.bind("tcp://*:5555")
-            while True:
+            while not self._shutdown:
                 message = socket.recv()
                 request, content = self.parse_request(message)
                 reply = self.instantiate_rpc(request, content)
 
                 serialized_reply = pickle.dumps(reply)
                 socket.send(serialized_reply)
-        except:
-            print("Controller terminating - shutting down heater power!")
+        except Exception as ex:
+            print("Controller terminating - shutting down heater power! Exception: {}".format(ex))
             self._controller.relais_off()
 
         self._controller.join()
@@ -203,9 +208,10 @@ class KilnService():
     def unknown_member(self, content):
         return False
 
-    def shutdown_kiln(self):
-        self._shutdown = True
-        self._controller.shutdown()
+    def shutdown_kiln(self, content):
+        print("Shutdown")
+        #self._controller.shutdown()
+        #self._shutdown = True
         
 def start():
     global _kiln_service
