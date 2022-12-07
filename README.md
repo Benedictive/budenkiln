@@ -45,6 +45,9 @@ Setup Database:
 2. Install `Python/Pylance` extension on remote host  
 (open extension explorer, should show "Install in SSH: \<Host IP>")  
 
+## Systemd for Autostart
+Add the `budenkiln.service` file from the ServiceSetup directory into `/etc/systemd/system`.  
+See `ServiceSetup/setup.txt` for additional info on systemd setup and commands.  
+
 ## TODO
-- proper autostart
 - watchdog ?
