@@ -8,9 +8,11 @@ import zmq
 import pickle
 import signal
 
-import board
-from digitalio import DigitalInOut, Direction
-import adafruit_max31855
+_developmentMode = True
+if _developmentMode:
+    from mock_hardware_interface import MockInterface
+else:
+    from hardware_interface import HardwareInterface
 
 _kiln_service = None
 
@@ -23,13 +25,12 @@ class Controller(Thread):
         self._max_error_duration_s = 60
         super(Controller, self).__init__()
         # Setup Hardware IO
-        spi = board.SPI()
-        cs = DigitalInOut(board.CE0)
-        self.max31855 = adafruit_max31855.MAX31855(spi, cs)
-        self.relais = DigitalInOut(board.D15)
-        self.relais.direction = Direction.OUTPUT
+        if _developmentMode:
+            self._io_interface = MockInterface()
+        else:
+            self._io_interface = HardwareInterface()
 
-        self.relais.value = False
+        self.relais_off()
 
     def set_temp_curve(self, curve):
         print("Set Curve: ", curve)
@@ -51,15 +52,16 @@ class Controller(Thread):
     """
 
     def relais_off(self):
-        self.relais.value = False
+        self._io_interface.set_relais(False)
 
     def shutdown(self):
         print("Shutdown Controller")
         self._shutdown = True
+        self.relais_off()
 
     def run(self):
         # Start with relais off
-        self.relais.value = False
+        self.relais_off()
 
         curve = {}
         start_time = time()
@@ -92,7 +94,7 @@ class Controller(Thread):
 
                 # Fetch temperature from probe
                 try:
-                    measured_temperature = self.max31855.temperature
+                    measured_temperature = self._io_interface.get_temperature()
                     print("Measured Temperature = {}".format(measured_temperature))
                     thermocouple_error_count=0
                 except RuntimeError:
@@ -101,7 +103,7 @@ class Controller(Thread):
                     print("Thermocouple error")
                     thermocouple_error_count+=1
                     if (thermocouple_error_count > (self._max_error_duration_s / self._loop_duration_s)):
-                        self.relais.value = False
+                        self.relais_off()
                         raise RuntimeError("Thermocouple short to ground!")
                     continue
 
@@ -142,9 +144,9 @@ class Controller(Thread):
                 absolute_accepted_error = target_temp * 0.01
 
                 if measured_temperature < (target_temp - absolute_accepted_error):
-                    self.relais.value = True
+                    self._io_interface.set_relais(True)
                 elif measured_temperature > (target_temp + absolute_accepted_error):
-                    self.relais.value = False
+                    self.relais_off()
 
         except:
             # Ensure deactivation of relais on error
@@ -157,13 +159,15 @@ class Controller(Thread):
 
 class KilnService():
     def __init__(self):
+        signal.signal(signal.SIGINT, self.signal_handler)
+        signal.signal(signal.SIGTERM, self.signal_handler)
+
         self._controller = Controller()
         self._controller.daemon = True
 
         self._shutdown = False
 
     def start(self):
-        signal.signal(signal.SIGINT, signal.SIG_DFL)
         print("Start Controller Thread")
         self._controller.start()
 
@@ -208,10 +212,14 @@ class KilnService():
     def unknown_member(self, content):
         return False
 
-    def shutdown_kiln(self, content):
+    def shutdown_kiln(self, content) -> None:
         print("Shutdown")
-        #self._controller.shutdown()
+        self._controller.shutdown()
         #self._shutdown = True
+
+    def signal_handler(self, signum, frame):
+        self.shutdown_kiln(None)
+        signal.SIG_DFL(signum, frame)
         
 def start():
     global _kiln_service

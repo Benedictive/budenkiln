@@ -45,6 +45,12 @@ Setup Database:
 2. Install `Python/Pylance` extension on remote host  
 (open extension explorer, should show "Install in SSH: \<Host IP>")  
 
+## Local Development without RasPi
+Hardware IO for the RasPi has been abstracted to allow for development on regular desktops.  
+To do so, just set `_developmentMode = True` in `hardware_controller.py`, otherwise `False`.  
+This will generate fake sensor input and void GPIO output.  
+Otherwise works as usual, though the start script `start.sh` only works in the appropriate shell as expected.  
+
 ## Systemd for Autostart
 Add the `budenkiln.service` file from the ServiceSetup directory into `/etc/systemd/system`.  
 See `ServiceSetup/setup.txt` for additional info on systemd setup and commands.  
