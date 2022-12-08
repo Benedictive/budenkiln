@@ -2,7 +2,7 @@ import board
 from digitalio import DigitalInOut, Direction
 import adafruit_max31855
 
-class HardwareInterace():
+class HardwareInterface():
     def __init__(self) -> None:
         self._spi = board.SPI()
         self._cs_pin = DigitalInOut(board.CE0)
