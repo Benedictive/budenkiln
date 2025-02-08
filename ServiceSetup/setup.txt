@@ -7,6 +7,9 @@ systemctl enable budenkiln.service
 systemctl start budenkiln.service
 systemctl status budenkiln.service
 
+systemctl stop budenkiln.service
+systemctl disable budenkiln.service
+
 See current log state for this day, oldest at top:
 journalctl -u budenkiln.service -r --since=today
 

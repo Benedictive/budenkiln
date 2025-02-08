@@ -50,7 +50,7 @@ def getTemperatureHistory(request):
 
 @api_view(['POST'])
 def shutdownBudenkiln(request):
-    # TODO
+    controller_rpc("shutdown_kiln", None)
     return HttpResponse(status=status.HTTP_200_OK)
 
 def controller_rpc(method, content):
