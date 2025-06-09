@@ -55,7 +55,7 @@ class Controller(Thread):
         self._io_interface.set_relais(False)
 
     def shutdown(self):
-        print("Shutdown Controller")
+        print("Shutdown Controller and Heater Power")
         self._shutdown = True
         self.relais_off()
 
@@ -165,6 +165,9 @@ class KilnService():
         self._controller = Controller()
         self._controller.daemon = True
 
+        self._ipcHandler = IpcHandler(self)
+        self._ipcHandler.daemon = True
+
         self._shutdown = False
 
     def start(self):
@@ -172,31 +175,21 @@ class KilnService():
         self._controller.start()
 
         print("Start RPC Server")
-        context = zmq.Context()
-        socket = context.socket(zmq.REP)
-        try:
-            # setup server
-            # replace IP with ipc://<path> on linux
-            socket.bind("tcp://*:5555")
-            while not self._shutdown:
-                message = socket.recv()
-                request, content = self.parse_request(message)
-                reply = self.instantiate_rpc(request, content)
+        self._ipcHandler.start()
 
-                serialized_reply = pickle.dumps(reply)
-                socket.send(serialized_reply)
-        except Exception as ex:
-            print("Controller terminating - shutting down heater power! Exception: {}".format(ex))
-            self._controller.relais_off()
+        try:
+            while (not self._shutdown):
+                sleep(1000)
+        except KeyboardInterrupt:
+            print("Init shutdown")
+            self.shutdown_kiln()
 
         self._controller.join()
+
         if self._shutdown:
             print("Shutting down!")
             # TODO does not work without sudo while in user session, should work once in autostart
-            os.system("systemctl poweroff")
-
-    def parse_request(self, message):
-        return pickle.loads(message)
+            #os.system("systemctl poweroff")
 
     def instantiate_rpc(self, request, content):
         # technically allows (limited) remote code execution, maybe seal behind interface ?
@@ -212,15 +205,53 @@ class KilnService():
     def unknown_member(self, content):
         return False
 
-    def shutdown_kiln(self, content) -> None:
-        print("Shutdown")
+    def shutdown_kiln(self, content=None) -> None:
+        print("Shutdown KilnService")
         self._controller.shutdown()
-        #self._shutdown = True
+        self._ipcHandler.shutdown()
+        self._shutdown = True
 
     def signal_handler(self, signum, frame):
-        self.shutdown_kiln(None)
-        signal.SIG_DFL(signum, frame)
+        print("SigHandler called with signum: {}".format(signum))
+        raise KeyboardInterrupt
         
+class IpcHandler(Thread):
+    def __init__(self, kilnService : KilnService):
+        self._shutdown = False
+        self._kilnService = kilnService
+        super(IpcHandler, self).__init__()
+        print("Init IPC")
+
+    def run(self):
+        print("Run IPC")
+        context = zmq.Context()
+        socket = context.socket(zmq.REP)
+        try:
+            # setup server
+            # replace IP with ipc://<path> on linux
+            socket.bind("tcp://*:5555")
+            while not self._shutdown:
+                message = socket.recv()
+                request, content = self.parse_request(message)
+                reply = self._kilnService.instantiate_rpc(request, content)
+
+                serialized_reply = pickle.dumps(reply)
+                socket.send(serialized_reply)
+        except Exception as ex:
+            print("IPC interface failed - shutting down kiln! Exception: {}".format(ex))
+            self._kilnService.shutdown_kiln()
+        finally:
+            socket.close()
+            context.term()
+        print("IPC interface terminated.")
+
+    def parse_request(self, message):
+        return pickle.loads(message)
+    
+    def shutdown(self):
+        print("Shutdown IPC interface")
+        self._shutdown = True
+
 def start():
     global _kiln_service
 

@@ -76,6 +76,94 @@ function deselect() {
     }
 }
 
+function getPointInfo(data, index) {
+    const point = data[index];
+    const newPointText = "".concat(index," : Time ", Math.round(point.x), " - Temp ", Math.round(point.y), "°C");
+
+    return newPointText;
+}
+
+function updatePoint(data, index, values) {
+    data[index] = values;
+    if (selectedPoint != null) {
+        sortDataKeepSelected(data, selectedPoint);
+    } else {
+        data.sort((a, b) => { return a.x - b.x });
+    }
+    chart.update();
+
+    buildPointList(data);
+}
+
+//creates an entry in the point list for each point in data
+function buildPointList(data) {
+    const listDiv = document.getElementById("list-repr");
+    const baseId = "lre-"
+
+    const pointTemplate = document.querySelector("#lre-template");
+
+    //clear existing entries if they exist
+    while (listDiv.firstChild) {
+        listDiv.removeChild(listDiv.lastChild);
+    }
+
+    for (let i = 0; i < data.length; i++) {
+        const newPointDiv = pointTemplate.content.cloneNode(true);
+        newPointDiv.id = baseId.concat(i);
+
+        const newPointTimeField = newPointDiv.querySelector("#lre-template-time");
+        newPointTimeField.id = baseId.concat("time-", i);
+        newPointTimeField.value = Math.round(data[i].x)
+
+        const newPointTimeLabel = newPointDiv.querySelector("#lre-template-time-label");
+        newPointTimeLabel.id = baseId.concat("time-label-", i);
+        newPointTimeLabel.htmlFor = newPointTimeField.id;
+        newPointTimeLabel.innerHTML = "Time:"
+
+        const newPointTempField = newPointDiv.querySelector("#lre-template-temp");;
+        newPointTempField.id = baseId.concat("temp-", i);
+        newPointTempField.value = Math.round(data[i].y);
+
+        const newPointTempLabel = newPointDiv.querySelector("#lre-template-temp-label");
+        newPointTempLabel.id = baseId.concat("temp-label-", i);
+        newPointTempLabel.htmlFor = newPointTempLabel.id;
+        newPointTempLabel.innerHTML = "Temp °C:"
+
+        const newPointDeleteButton = newPointDiv.querySelector("#lre-template-delete-button");
+        newPointDeleteButton.id = baseId.concat("del-button-", i);
+        newPointDeleteButton.addEventListener('click', function(){
+            deletePoint(data, i);
+        });
+
+        const newPointApplyButton = newPointDiv.querySelector("#lre-template-apply-button");
+        newPointApplyButton.id = baseId.concat("apply-button-", i);
+        newPointApplyButton.addEventListener('click', function(){
+            const newTime = newPointTimeField.value;
+            const newTemp = newPointTempField.value;
+            updatePoint(data, i, {x: newTime, y: newTemp});
+        });
+
+        listDiv.appendChild(newPointDiv);
+    }
+}
+
+function insertPoint(data, dataX, dataY) {
+    data.push({ x: dataX, y: dataY });
+    data.sort((a, b) => { return a.x - b.x });
+
+    buildPointList(data);
+}
+
+function deletePoint(data, index) {
+    if (selectedPoint != null) {
+        deselect();
+    }
+
+    data.splice(index, 1);
+
+    buildPointList(data);
+}
+
 function updatePointText() {
     var textTime = "---";
     var textTemp = "---";
@@ -94,12 +182,11 @@ function getSelectedPoint() {
 }
 
 function sortDataKeepSelected(data, selected) {
-    var dataArray = data.datasets[selected.dataset].data;
-    var point = dataArray[selected.index];
+    var point = data[selected.index];
 
-    dataArray.sort((a, b) => { return a.x - b.x });
+    data.sort((a, b) => { return a.x - b.x });
 
-    select(selected.dataset, dataArray.findIndex((element) => element == point));
+    select(selected.dataset, data.findIndex((element) => element == point));
 }
 
 chart = new Chart(document.getElementById("myChart"), {
@@ -160,15 +247,12 @@ chart = new Chart(document.getElementById("myChart"), {
 
                 if (selectedPoint == null) {
                     // Create a new data point at x, y. 
-                    data.datasets[0].data.push({ x: dataX, y: dataY });
-                    data.datasets[0].data.sort((a, b) => { return a.x - b.x });
+                    insertPoint(data.datasets[0].data, dataX, dataY);
+                    chart.update();
                 } else {
                     // Move the previously selected data point to x, y. 
-                    data.datasets[selectedPoint.dataset].data[selectedPoint.index] = { x: dataX, y: dataY };
-                    sortDataKeepSelected(data, selectedPoint);
+                    updatePoint(data.datasets[selectedPoint.dataset].data, selectedPoint.index, { x: dataX, y: dataY });
                 }
-
-                chart.update();
             } else {
                 var item = items[0];
                 itemDatasetLabel = data.datasets[item.datasetIndex].label
@@ -193,8 +277,7 @@ chart = new Chart(document.getElementById("myChart"), {
 
 function onDelete() {
     if (selectedPoint != null) {
-        data.datasets[selectedPoint.dataset].data.splice(selectedPoint.index, 1);
-        deselect();
+        deletePoint(data.datasets[selectedPoint.dataset].data, selectedPoint.index)
         chart.update();
     }
 }
@@ -205,6 +288,7 @@ function moveTemp(delta) {
 
         // Make sure that the temperature is positive and does not exceed the temperature range.
         point.y = Math.max(0, Math.min(MAX_TEMPEARTURE, point.y + delta));
+        updatePoint(data.datasets[selectedPoint.dataset].data, selectedPoint.index, point);
         updatePointText();
         chart.update();
     }
@@ -215,9 +299,8 @@ function moveTime(delta) {
         var point = getSelectedPoint();
 
         // Make sure that the time is always positive.
-        point.x = Math.max(0, point.x + delta);
-
-        sortDataKeepSelected(data, selectedPoint);
+        point.x = Math.max(0, point.x + delta)
+        updatePoint(data.datasets[selectedPoint.dataset].data, selectedPoint.index, point);
         updatePointText();
         chart.update();
     }
@@ -249,7 +332,7 @@ function display_temperature_history() {
 setInterval(display_temperature_history, 1000);
 
 function submit_chart() {
-    const curveName = document.getElementById("curve-name").value;
+    const curveName = "Default";
     
     var curve_request_data = {
         name: curveName,
