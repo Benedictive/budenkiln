@@ -83,9 +83,8 @@ function getPointInfo(data, index) {
     return newPointText;
 }
 
-function updatePoint(data, index, values) {
-    data[index] = values;
-    if (selectedPoint != null) {
+function refreshPointDisplays(data) {
+     if (selectedPoint != null) {
         sortDataKeepSelected(data, selectedPoint);
     } else {
         data.sort((a, b) => { return a.x - b.x });
@@ -95,10 +94,37 @@ function updatePoint(data, index, values) {
     buildPointList(data);
 }
 
+function updatePoint(data, index, values) {
+    data[index] = values;
+    
+    refreshPointDisplays(data);
+}
+
+function applyPointList(data) {
+    const listDiv = document.getElementById("list-repr");
+    const baseId = "lre-";
+    
+    const points = data.length;
+
+    for (let i = 0; i < points; i++) {
+        const pointEntry = listDiv.querySelector("#".concat(baseId, i));
+        const pointTime = pointEntry.querySelector("#".concat(baseId, "time-", i));
+        const pointTemp = pointEntry.querySelector("#".concat(baseId, "temp-", i));
+
+        data[i] = {x: pointTime.value, y: pointTemp.value};
+    }
+
+    refreshPointDisplays(data);
+}
+
+function updateChartFromList() {
+    applyPointList(data.datasets[0].data);
+}
+
 //creates an entry in the point list for each point in data
 function buildPointList(data) {
     const listDiv = document.getElementById("list-repr");
-    const baseId = "lre-"
+    const baseId = "lre-";
 
     const pointTemplate = document.querySelector("#lre-template");
 
@@ -108,7 +134,8 @@ function buildPointList(data) {
     }
 
     for (let i = 0; i < data.length; i++) {
-        const newPointDiv = pointTemplate.content.cloneNode(true);
+        const newPointNode = pointTemplate.content.cloneNode(true);
+        const newPointDiv = newPointNode.querySelector("#lre-template-div");
         newPointDiv.id = baseId.concat(i);
 
         const newPointTimeField = newPointDiv.querySelector("#lre-template-time");
@@ -135,15 +162,7 @@ function buildPointList(data) {
             deletePoint(data, i);
         });
 
-        const newPointApplyButton = newPointDiv.querySelector("#lre-template-apply-button");
-        newPointApplyButton.id = baseId.concat("apply-button-", i);
-        newPointApplyButton.addEventListener('click', function(){
-            const newTime = newPointTimeField.value;
-            const newTemp = newPointTempField.value;
-            updatePoint(data, i, {x: newTime, y: newTemp});
-        });
-
-        listDiv.appendChild(newPointDiv);
+        listDiv.appendChild(newPointNode);
     }
 }
 
