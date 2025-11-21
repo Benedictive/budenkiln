@@ -10,6 +10,13 @@ select: interfacing options > SPI > enable
 Python dependencies:  
 See requirements.txt, or:  
 `pip install -r requirements.txt`
+The core dependencies are:
+- django - Hosting the web-interface
+- djangorestframework - Providing web-interface API
+- pyzmq - IPC between server and controller
+- Adafruit-Blinka - Provides circuitpython environment for embedded capability
+- adafruit-circuitpython-max31855 - Lib for talking to the max31855 chip
+
 ## WiFi Hotspot
 Useful for usage of Kiln without connection to existing Network:  
 Follow official RaspberryPi documentation on hosting an AP, except simply use the provided config files:  
