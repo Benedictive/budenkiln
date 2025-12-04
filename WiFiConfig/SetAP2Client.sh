@@ -1,33 +1,20 @@
 #!/bin/bash
 # This script will stop Hotspot (AP+DHCP) and will Switch your Raspberry to a WIFI Client 
 # Run : bash SetAP2Client.sh
-# Source: RPi-Forums: https://forums.raspberrypi.com/viewtopic.php?t=307221
 # Required setup:
-# Have client-configs for dnsmasq and dhcpcd saved as *.conf.orig
-# Have AP-Configs for dnsmasq and dhcpcd saved as *.conf.ap
-# The latter is not required for deactivating, but would disable revertability
-# Maybe rework for use of properly named temp files ?
-# Result: Worked manually so far
+# Replace 'ConnectionName' with the actual name of your WiFi connection profile and ifname as desired.
 
 echo "========================================"
-echo " Switch from Hotspot (AP+DHP) to Client "
+echo " Switch from Hotspot to Client "
 echo "========================================"
 echo " "
-echo "Reconfiguring dnsmasq"
-sudo cp /etc/dnsmasq.conf.orig /etc/dnsmasq.conf
+echo "Shutting down wifi"
+sudo nmcli device disconnect wlan0
+sudo nmcli radio wifi off
 
-echo "Reconfiguring dhcpcd"
-sudo cp /etc/dhcpcd.conf.orig /etc/dhcpcd.conf
+echo "Starting wifi in client mode"
+sudo nmcli radio wifi on
+sudo nmcli connection up id ConnectionName ifname wlan0
 
-echo "Stopping hostapd, dnsmasq "
-sudo service dnsmasq stop
-sudo service hostapd stop
-
-echo "Reloading Daemon"
-sudo systemctl daemon-reload
-
-echo "Restaring dhcpcd"
-sudo systemctl restart dhcpcd
-
-echo "Done. System should connect to known WiFi in range."
+echo "Done. System should connect to Wifi."
 exit
